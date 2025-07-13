@@ -71,10 +71,12 @@ func main() {
 	cert := "cert.pem"
 	key := "key.pem"
 
-	http.HandleFunc("/", rootHandler)
-	http.HandleFunc("/teachers", teachersHandler)
-	http.HandleFunc("/students", studentsHandler)
-	http.HandleFunc("/execs", execsHandler)
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/", rootHandler)
+	mux.HandleFunc("/teachers", teachersHandler)
+	mux.HandleFunc("/students", studentsHandler)
+	mux.HandleFunc("/execs", execsHandler)
 
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS12,
@@ -83,7 +85,7 @@ func main() {
 	// create custom server with TLS config
 	server := &http.Server{
 		Addr:      port,
-		Handler:   nil, // use default handler,
+		Handler:   mux, // use default handler,
 		TLSConfig: tlsConfig,
 	}
 
