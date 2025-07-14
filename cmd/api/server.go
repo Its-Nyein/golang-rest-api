@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	mw "restapi/v2/internal/api/middlewares"
+	"time"
 )
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
@@ -83,10 +84,12 @@ func main() {
 		MinVersion: tls.VersionTLS12,
 	}
 
+	rl := mw.NewRateLimiter(5, time.Minute)
+
 	// create custom server with TLS config
 	server := &http.Server{
 		Addr:      port,
-		Handler:   mw.ResponseTimeMiddleware(mw.SecurityHeaders(mw.Cors(mux))), // use default handler,
+		Handler:   rl.RateLimiterMiddleware(mw.CompressionMiddleware(mw.ResponseTimeMiddleware(mw.SecurityHeaders(mw.Cors(mux))))),
 		TLSConfig: tlsConfig,
 	}
 
