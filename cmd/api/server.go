@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"restapi/v2/internal/api/middlewares"
+	mw "restapi/v2/internal/api/middlewares"
 )
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
@@ -86,7 +86,7 @@ func main() {
 	// create custom server with TLS config
 	server := &http.Server{
 		Addr:      port,
-		Handler:   middlewares.SecurityHeaders(mux), // use default handler,
+		Handler:   mw.ResponseTimeMiddleware(mw.SecurityHeaders(mw.Cors(mux))), // use default handler,
 		TLSConfig: tlsConfig,
 	}
 
