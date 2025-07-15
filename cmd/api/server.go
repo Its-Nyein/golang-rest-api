@@ -55,6 +55,17 @@ func execsHandler(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		w.Write([]byte("Hello GET method on execs route"))
 	case http.MethodPost:
+		fmt.Println("Query:", r.URL.Query())
+		fmt.Println("Name:", r.URL.Query().Get("name"))
+		fmt.Println("Name:", r.URL.Query().Get("name"))
+
+		// parse form data
+		err := r.ParseForm()
+		if err != nil {
+			return
+		}
+		fmt.Println("Form of data:", r.Form)
+
 		w.Write([]byte("Hello POST method on execs route"))
 	case http.MethodPut:
 		w.Write([]byte("Hello PUT method on execs route"))
@@ -86,10 +97,20 @@ func main() {
 
 	rl := mw.NewRateLimiter(5, time.Minute)
 
+	hppOptions := mw.HPPOptions{
+		CheckQuery:              true,
+		CheckBody:               true,
+		CheckBodyOnlyForContent: "application/x-www-urlenconded",
+		Whitelist:               []string{"sortBy", "sortOrder", "name", "age", "class"},
+	}
+
+	// serverMux := mw.Cors(rl.RateLimiterMiddleware(mw.ResponseTimeMiddleware(mw.SecurityHeaders(mw.CompressionMiddleware(mw.HPP(hppOptions)(mux))))))
+	serverMux := ApplyMiddlewares(mux, mw.HPP(hppOptions), mw.CompressionMiddleware, mw.SecurityHeaders, mw.ResponseTimeMiddleware, rl.RateLimiterMiddleware, mw.Cors)
+
 	// create custom server with TLS config
 	server := &http.Server{
 		Addr:      port,
-		Handler:   rl.RateLimiterMiddleware(mw.CompressionMiddleware(mw.ResponseTimeMiddleware(mw.SecurityHeaders(mw.Cors(mux))))),
+		Handler:   serverMux,
 		TLSConfig: tlsConfig,
 	}
 
@@ -98,4 +119,14 @@ func main() {
 	if err != nil {
 		log.Fatalln("Error starting server:", err)
 	}
+}
+
+type Middleware func(http.Handler) http.Handler
+
+func ApplyMiddlewares(handler http.Handler, middlewares ...Middleware) http.Handler {
+	for _, middleware := range middlewares {
+		handler = middleware(handler)
+	}
+
+	return handler
 }
